@@ -3,50 +3,57 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { User, Role } from './user.entity';
+import { Role } from './user.entity';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
-  private users: User[] = [];
-  private nextId = 1;
+  constructor(
+    private readonly jwt: JwtService,
+    private readonly prisma: PrismaService
+  ) { }
 
-  findAll(): User[] {
-    return this.users;
+  async findAll() {
+    return await this.prisma.user.findMany();
   }
 
-  findOne(id: number): User {
-    const user = this.users.find((user) => user.id === id);
+  async findOne(id: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+    
     if (!user) {
-      throw new NotFoundException(`Usuario con id ${id} no existe`);
+      throw new NotFoundException(`User with id: ${id} does not exist`);
     }
     return user;
   }
 
-  create(name: string, email: string, phone: number, role: Role): User {
-    const emailExists = this.users.some((user) => user.email === email);
+  async create(name: string, email: string, phone: number, role: Role) {
+    const emailExists = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    
     if (emailExists) {
-      throw new BadRequestException(`El email ${email} ya está en uso`);
+      throw new BadRequestException(`The email ${email} is already in use`);
     }
 
-    const newUser: User = {
-      id: this.nextId++,
-      name,
-      email,
-      phone,
-      role,
-      createdAt: new Date(),
-    };
-
-    this.users.push(newUser);
-    return newUser;
+    return await this.prisma.user.create({
+      data: {
+        name,
+        email,
+        phone,
+        role,
+      },
+    });
   }
 
-  remove(id: number): { message: string } {
-    const index = this.users.findIndex((user) => user.id === id);
-    if (index === -1) {
-      throw new NotFoundException(`Usuario con id ${id} no existe`);
-    }
-    this.users.splice(index, 1);
-    return { message: `Usuario con id ${id} eliminado exitosamente` };
+  async remove(id: number): Promise<{ message: string }> {
+    await this.findOne(id); 
+    await this.prisma.user.delete({
+      where: { id },
+    });
+
+    return { message: `User with id ${id} successfully deleted` };
   }
 }

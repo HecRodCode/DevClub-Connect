@@ -17,6 +17,7 @@ model User {
   name      String
   email     String   @unique
   phone     BigInt
+  password  String
   role      Role     @default(USER)
   createdAt DateTime @default(now())
 }

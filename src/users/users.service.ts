@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { Role } from './user.entity';
+import { Role } from './entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -11,8 +11,8 @@ import { PrismaService } from '../prisma/prisma.service';
 export class UsersService {
   constructor(
     private readonly jwt: JwtService,
-    private readonly prisma: PrismaService
-  ) { }
+    private readonly prisma: PrismaService,
+  ) {}
 
   async findAll() {
     return await this.prisma.user.findMany();
@@ -22,18 +22,18 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
-    
+
     if (!user) {
       throw new NotFoundException(`User with id: ${id} does not exist`);
     }
     return user;
   }
 
-  async create(name: string, email: string, phone: number, role: Role) {
+  async create(name: string, email: string, password: string, phone: number, role: Role) {
     const emailExists = await this.prisma.user.findUnique({
       where: { email },
     });
-    
+
     if (emailExists) {
       throw new BadRequestException(`The email ${email} is already in use`);
     }
@@ -44,12 +44,13 @@ export class UsersService {
         email,
         phone,
         role,
+        password
       },
     });
   }
 
   async remove(id: number): Promise<{ message: string }> {
-    await this.findOne(id); 
+    await this.findOne(id);
     await this.prisma.user.delete({
       where: { id },
     });

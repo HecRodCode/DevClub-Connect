@@ -22,6 +22,7 @@ export class UsersController {
     const user = this.usersService.create(
       body.name,
       body.email,
+      body.password,
       body.phone,
       body.role,
     );
